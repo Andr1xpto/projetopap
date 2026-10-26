@@ -1,56 +1,82 @@
 import pygame
-import os
+import sys
 
+# Initialize Pygame
 pygame.init()
 
-# Ecrã
-screen_width = 1920
-screen_height = 1020
+# Screen settings
+WIDTH, HEIGHT = 400, 200
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Horizontal Drag Volume Bar")
 
-pygame.display.set_caption('MindUp Education')
-screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BAR_COLOR = (0, 200, 0)
+BAR_BG_COLOR = (200, 0, 0)
+
+# Bar settings
+BAR_X = 50
+BAR_Y = 80
+BAR_WIDTH = 300
+BAR_HEIGHT = 30
+bar_value = 50  # percentage (0–100)
+
+# Drag state
+dragging = False
+
+def draw_horizontal_bar(surface, x, y, width, height, value):
+    """Draws a horizontal bar with given percentage value."""
+    # Draw background (empty part)
+    pygame.draw.rect(surface, BAR_BG_COLOR, (x, y, width, height))
+    
+    # Calculate filled width
+    filled_width = int(width * (value / 100))
+    
+    # Draw filled part from left to right
+    pygame.draw.rect(surface, BAR_COLOR, (x, y, filled_width, height))
+
+def set_bar_value_from_mouse(mouse_pos):
+    global bar_value
+    mx, my = mouse_pos
+    # Clamp mouse X within bar range
+    if mx < BAR_X:
+        mx = BAR_X
+    elif mx > BAR_X + BAR_WIDTH:
+        mx = BAR_X + BAR_WIDTH
+    # Calculate percentage from left
+    bar_value = int(((mx - BAR_X) / BAR_WIDTH) * 100)
+
+# Main loop
 clock = pygame.time.Clock()
+while True:
+    screen.fill(WHITE)
 
-# Caminhos de ficheiros
-caminho_base = os.path.dirname(__file__)
-carregamento_caminho = os.path.join(caminho_base, "imagens", "Tela_carregamento.png")
-inicial_caminho = os.path.join(caminho_base, "imagens", "Tela_inicial.png")
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # Left click
+                # Check if click is inside bar
+                if BAR_X <= event.pos[0] <= BAR_X + BAR_WIDTH and BAR_Y <= event.pos[1] <= BAR_Y + BAR_HEIGHT:
+                    dragging = True
+                    set_bar_value_from_mouse(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if dragging:
+                set_bar_value_from_mouse(event.pos)
 
-# Carregamento de ficheiros
-tela_carregamento = pygame.image.load(carregamento_caminho)
-tela_inicial = pygame.image.load(inicial_caminho)
-carregamento = pygame.transform.smoothscale(tela_carregamento, (screen_width, screen_height))
-inicial = pygame.transform.smoothscale(tela_inicial, (screen_width, screen_height))
+    # Draw the bar
+    draw_horizontal_bar(screen, BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT, bar_value)
 
-running = True
+    # Draw text showing percentage
+    font = pygame.font.SysFont(None, 24)
+    text = font.render(f"{bar_value}%", True, BLACK)
+    screen.blit(text, (BAR_X + BAR_WIDTH + 10, BAR_Y + BAR_HEIGHT // 2))
 
-# Variáveis para controlar o tempo e o ecrã atual
-estado_atual = "carregamento"
-tempo_inicio = pygame.time.get_ticks()  # Guarda o momento exato em que o jogo arranca
-
-while running:
-    # Gestão de eventos (fecha a janela se clicares no X)
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            running = False
-
-    # Verificar se já passaram 5 segundos (5000 milissegundos)
-    tempo_atual = pygame.time.get_ticks()
-    if estado_atual == "carregamento" and tempo_atual - tempo_inicio >= 5000:
-        estado_atual = "inicial"  # Muda para o ecrã inicial após 5 segundos
-
-    # Limpar o ecrã
-    screen.fill((30, 16, 53))
-
-    # Desenhar a imagem correta dependendo do estado atual
-    if estado_atual == "carregamento":
-        screen.blit(carregamento, (0, 0))
-    else:
-        screen.blit(inicial, (0, 0))
-
-    # Atualizar o ecrã (sem congelar!)
     pygame.display.flip()
-
     clock.tick(60)
-
-pygame.quit()
